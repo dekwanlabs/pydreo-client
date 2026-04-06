@@ -1,82 +1,101 @@
+pydreo-client
+=============
 
-<!-- PROJECT LOGO -->
-<br />
-<p align="center">
-  <h3 align="center">pydreo-client</h3>
+`pydreo-client` is now a provider-based Dreo SDK. The package still supports the original cloud-only usage, but the internal architecture has been rebuilt so we can add a real `local` module without duplicating client, device, and routing logic.
 
-  <p align="center">
-    Library for connecting to Dreo cloud.
-    <br />
-    <br />
-    <a href="https://github.com/dreo-team/pydreo-client/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/dreo-team/pydreo-client/issues">Request Feature</a>
-  </p>
-</p>
+## What Changed in v2
 
+- Added a formal `pydreo/` package with clear `core`, `cloud`, and `local` boundaries.
+- Introduced a unified `DreoClient` facade that can orchestrate multiple providers.
+- Migrated cloud access into a `CloudProvider` with separate auth and HTTP transport layers.
+- Added a usable `LocalProvider` shell with config, discovery, protocol, and transport extension points.
+- Preserved the cloud compatibility import path: `from pydreo.cloud.client import DreoClient`.
 
-## About The Project
+## Package Layout
 
-Simple implementation for logging in to your Dreo cloud account and fetch device information.
+```text
+pydreo/
+  client.py            # Unified facade
+  core/                # Shared models, strategy, registry, exceptions
+  cloud/               # Cloud provider implementation
+  local/               # Local provider shell and extension points
+```
 
+## Installation
 
-<!-- USAGE EXAMPLES -->
+```sh
+pip install pydreo-client
+```
+
 ## Usage
 
-How to get and use pydreo-cloud.
+### Cloud Only, Backward Compatible
 
-###  Getting it
-
-To download pydreo-client, either fork this github repo or use Pypi via pip.
-```sh
-$ pip install pydreo-client
-```
-
-### Using it
-You can use pydreo-cloud in your project.
-
-#### In code:
-As of right now there's not much you can do. You can login and get device info from Dreo cloud:
-```Python
+```python
 from pydreo.cloud.client import DreoClient
 
-manage = DreoClient("USERNAME", "PASSWORD")
-manage.login()
+client = DreoClient("USERNAME", "PASSWORD")
+client.login()
 
-# get list of devices
-devices = manage.get_devices()
-
-# get status of devices
-status = manage.get_status("DEVICESN")
+devices = client.get_devices()
+status = client.get_status("DEVICE_SN")
+client.update_status("DEVICE_SN", power="on")
 ```
 
-<!-- LICENSE -->
+### Unified Facade with Future Local Support
+
+```python
+from pydreo import CloudConfig, ConnectionStrategy, DreoClient, LocalConfig
+
+client = DreoClient(
+    cloud_config=CloudConfig(username="USERNAME", password="PASSWORD"),
+    local_config=LocalConfig(),
+    strategy=ConnectionStrategy.LOCAL_PREFERRED,
+)
+
+devices = client.discover_devices()
+state = client.get_device_state("DEVICE_SN")
+result = client.set_device_state("DEVICE_SN", power="on")
+```
+
+### Injecting a Local Transport During Development
+
+```python
+from pydreo import DreoLocalClient, LocalConfig, LocalHostConfig
+from pydreo.local.transport import InMemoryLocalTransport
+
+client = DreoLocalClient(
+    config=LocalConfig(
+        known_hosts=(
+            LocalHostConfig(host="192.168.1.20", serial_number="LOCAL-001", name="Desk Fan"),
+        ),
+    ),
+    transport=InMemoryLocalTransport({"LOCAL-001": {"power": "on", "speed": 2}}),
+)
+
+devices = client.discover_devices()
+state = client.get_device_state("LOCAL-001")
+```
+
+## Extending the Local Module
+
+The new local stack is deliberately composable:
+
+- `LocalDiscoveryBackend` is where LAN discovery or manual device seeding should live.
+- `LocalTransport` is where socket or protocol I/O should live.
+- `LocalProtocolAdapter` is where payload translation should live.
+- `LocalProvider` wires those pieces together and exposes the same contract as cloud.
+
+That means the next local implementation can focus on protocol specifics without changing the public client surface again.
+
+## Development
+
+Run the built-in unit tests with:
+
+```sh
+python3 -m unittest discover -s tests -v
+```
+
 ## License
 
 Distributed under the MIT License. See `LICENSE` for more information.
-
-
-
-<!-- CONTACT -->
-## Contact
-
-Dreo Team: [developer@dreo.com](mailto:developer@dreo.com)
-
-Project Link: [https://github.com/dreo-team/pydreo-client](https://github.com/dreo-team/pydreo-client)
-
-
-
-
-<!-- MARKDOWN LINKS & IMAGES -->
-<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[contributors-shield]: https://img.shields.io/github/contributors/squachen/micloud.svg?style=flat-square
-[contributors-url]: https://github.com/dreo-team/pydreo-client/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/Squachen/micloud.svg?style=flat-square
-[forks-url]: https://github.com/dreo-team/pydreo-client/network/members
-[stars-shield]: https://img.shields.io/github/stars/squachen/micloud.svg?style=flat-square
-[stars-url]: https://github.com/dreo-team/pydreo-client/stargazers
-[issues-shield]: https://img.shields.io/github/issues/squachen/micloud.svg?style=flat-square
-[issues-url]: https://github.com/dreo-team/pydreo-client/issues
-[license-shield]: https://img.shields.io/github/license/squachen/micloud.svg?style=flat-square
-[license-url]: https://github.com/dreo-team/pydreo-client/blob/master/LICENSE.txt
-
