@@ -1,8 +1,6 @@
 """Constants for the Dreo Cloud provider."""
 
-#BASE_URL = "https://open-api-us.dreo-tech.com"
-#EU_BASE_URL = "https://open-api-eu.dreo-tech.com"
-BASE_URL = "http://10.10.20.109:2070"
+BASE_URL = "https://open-api-us.dreo-tech.com"
 EU_BASE_URL = "https://open-api-eu.dreo-tech.com"
 CLIENT_ID = "89ef537b2202481aaaf9077068bcb0c9"
 CLIENT_SECRET = "41b20a1f60e9499e89c8646c31f93ea1"
